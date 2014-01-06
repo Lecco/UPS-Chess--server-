@@ -39,6 +39,8 @@ void initChessBoard(struct chess_game *game)
     int i, j;
     for (i = 0; i < CHESS_BOARD; i++)
     {
+        game->board_colors[i] = (int *)malloc(sizeof(int *) * CHESS_BOARD);
+        game->board_figures[i] = (int *)malloc(sizeof(int *) * CHESS_BOARD);
         for (j = 0; j < CHESS_BOARD; j++)
         {
             game->board_colors[i][j] = DEFAULT_CHESSPIECE;
@@ -75,6 +77,24 @@ void initChessBoard(struct chess_game *game)
     game->board_figures[7][5] = PIECE_BISHOP;
     game->board_figures[7][6] = PIECE_KNIGHT;
     game->board_figures[7][7] = PIECE_ROOK;
+}
+
+/**
+ * Prints chess board (without info about color)
+ * 
+ * @param game Game consists of info about positions of pieces and their color
+ */
+void printChessBoard(struct chess_game *game)
+{
+    int i, j;
+    for (i = CHESS_BOARD - 1; i >= 0; i--)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            printf("%d ", game->board_figures[i][j]);
+        }
+        printf("\n");
+    }
 }
 
 
@@ -227,6 +247,6 @@ int main(int argc, char *argv[])
             close(connected_first);
             close(connected_second);
         }
-        sleep(5000);
+        sleep(30000);
     }
 }
