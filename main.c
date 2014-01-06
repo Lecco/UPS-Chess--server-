@@ -218,12 +218,12 @@ int main(int argc, char *argv[])
     {
         first_player_size = sizeof (first_player);
         connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
-        printf("\nFirst player connected from %s on port %d)\n", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+        printf("\nFirst player connected from %s, port %d\n", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
         connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
-        printf("\nSecond player connected from %s on port %d)\n", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+        printf("\nSecond player connected from %s, port %d\n", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
         
         number_of_game++;
         
@@ -256,26 +256,25 @@ int main(int argc, char *argv[])
             while (!check_mate && !check_stalemate)
             {
                 // game loop
+                printf("Turn of player %d\n", game.player.reference);
+                sendPlayerCommand(game.player.reference, COMMAND_MESSAGE, "Your move:");
+                char *move;
+                move = receivePlayerData(game.player.reference);
+                printf("End of turn of player %d", game.player.reference);
                 if (game.player.reference == white_player.reference)
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_MESSAGE, "Your move:");
-                    char *move;
-                    move = receivePlayerData(white_player.reference);
+                    game.player = black_player;
                 }
                 else
                 {
-                    
+                    game.player = white_player;
                 }
             }
-            
-            
-            
         }
         else
         {
             close(connected_first);
             close(connected_second);
         }
-        sleep(30000);
     }
 }
