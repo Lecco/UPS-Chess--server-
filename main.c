@@ -5,16 +5,19 @@
 #include <string.h>     
 #include <unistd.h>     /* for close() */
 
+#include "constants.h"
+#include "Chess_game.c"
+
 int main(int argc, char *argv[])
 {
     int port = 10001;
     char *ip_address = "127.0.0.1";
-    int sock, connected, bytes_received, true = 1;
+    int sock, connected_first, connected_second, bytes_received, true = 1;
     char recv_data;
     char replyBuffer[32];
 
-    struct sockaddr_in server_addr, client_addr;
-    int sin_size;
+    struct sockaddr_in server_addr, first_player, second_player;
+    int first_player_size, second_player_size;
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror("Couldn't create socket.");
@@ -48,26 +51,40 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        sin_size = sizeof (client_addr);
-        connected = accept(sock, (struct sockaddr *) &client_addr, &sin_size);
-        printf("\nClient from %s on port %d)", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        first_player_size = sizeof (first_player);
+        connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
+        printf("\nFirst player connected from %s on port %d)", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+        
+        // wait for next player, so game can begin
+        second_player_size = sizeof (second_player);
+        connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
+        printf("\nSecond player connected from %s on port %d)", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
 
-        while ((bytes_received = recv(connected, &recv_data, 1, 0)))
+        if (fork() == 0)
         {
-            printf("\nrecv= %c\n", recv_data);
-            if (recv_data == '\n')
+            while ((bytes_received = recv(connected_first, &recv_data, 1, 0)))
             {
-                break;
+                printf("\nrecv= %c\n", recv_data);
+                if (recv_data == '\n')
+                {
+                    break;
+                }
             }
+            
+            int success = 1;
+            sprintf(replyBuffer, "%d\n", success);
+            //printf("reply buffer = %s\n", replyBuffer);
+            if (send(connected_first, replyBuffer, strlen(replyBuffer), 0) == -1)
+            {
+                perror("send() failed");
+            }
+            success = 0;
+            
         }
-        int success = 1;
-        sprintf(replyBuffer, "%d\n", success);
-        //printf("reply buffer = %s\n", replyBuffer);
-        if (send(connected, replyBuffer, strlen(replyBuffer), 0) == -1)
+        else
         {
-            perror("send() failed");
+            close(connected_first);
+            close(connected_second);
         }
-        success = 0;
-        close(connected);
     }
 }
