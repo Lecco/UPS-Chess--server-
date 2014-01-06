@@ -6,16 +6,19 @@
  */
 
 #define CHESS_BOARD 8           /* Length of chess board */
-#define WHITE_CHESSPIECE 1      /* Represents white color of chess piece */
-#define BLACK_CHESSPIECE 0      /* Represents black color of chess piece */
-#define PIECE_PAWN 0            /* Represents pawn (= pesec) */
-#define PIECE_ROOK 1            /* Represents rook (= vez) */
-#define PIECE_KNIGHT 2          /* Represents knight (= jezdec) */
-#define PIECE_BISHOP 3          /* Represents bishop (= strelec) */
-#define PIECE_QUEEN 4           /* Represents queen (= dama) */
-#define PIECE_KING 5            /* Represents king (= kral) */
+#define DEFAULT_CHESSPIECE 0    /* This constant is used on fields where aren't pieces */
+#define WHITE_CHESSPIECE 2      /* Represents white color of chess piece */
+#define BLACK_CHESSPIECE 1      /* Represents black color of chess piece */
+#define PIECE_PAWN 1            /* Represents pawn (= pesec) */
+#define PIECE_ROOK 2            /* Represents rook (= vez) */
+#define PIECE_KNIGHT 3          /* Represents knight (= jezdec) */
+#define PIECE_BISHOP 4          /* Represents bishop (= strelec) */
+#define PIECE_QUEEN 5           /* Represents queen (= dama) */
+#define PIECE_KING 6            /* Represents king (= kral) */
 #define WHITE_PLAYER 1
 #define BLACK_PLAYER 0
+#define WHITE_PLAYER_INIT 2     /* White player has two first rows */
+#define BLACK_PLAYER_INIT 5     /* Black player has rows above fifth */
 
 #define COMMAND_STATUS "STATUS"
 #define COMMAND_SUCCESS "SUCCESS"
