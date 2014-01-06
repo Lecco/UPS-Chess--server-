@@ -162,6 +162,11 @@ char* receivePlayerData(int connected)
     return data;
 }
 
+int playMove(struct chess_game *game, char *move)
+{
+    printf("Trying to play move %s\n", move);
+}
+
 
 
 
@@ -260,6 +265,7 @@ int main(int argc, char *argv[])
                 sendPlayerCommand(game.player.reference, COMMAND_MESSAGE, "Your move:");
                 char *move;
                 move = receivePlayerData(game.player.reference);
+                int moveStatus = playMove(&game, move);
                 printf("End of turn of player %d", game.player.reference);
                 if (game.player.reference == white_player.reference)
                 {
