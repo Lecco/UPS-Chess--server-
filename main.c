@@ -11,6 +11,26 @@
 
 
 /**
+ * Structure player consists of player attributes like color of his pieces, if
+ * he is victorious player (that is set after game is finished) and integer 
+ * reference on his connection.
+ * 
+ * @author Oldřich Pulkrt <O.Pulkrt@gmail.com>
+ * @version 1.0
+ */
+struct player
+{
+    /* Reference of connected player */
+    int reference;
+    
+    /* Color of player */
+    int color;
+    
+    /* True (1) if this user won */
+    int victorious;
+};
+
+/**
  * Structure chess_game represents game of chess, meaning pieces on chess board,
  * their color.
  * 
@@ -24,6 +44,9 @@ struct chess_game
     
     /* In this array are color of figure on fields */
     int **board_colors;
+    
+    /* Identifier of user, whose turn is now */
+    struct player player;
 };
 
 /**
@@ -97,28 +120,6 @@ void printChessBoard(struct chess_game *game)
     }
 }
 
-
-/**
- * Structure player consists of player attributes like color of his pieces, if
- * he is victorious player (that is set after game is finished) and integer 
- * reference on his connection.
- * 
- * @author Oldřich Pulkrt <O.Pulkrt@gmail.com>
- * @version 1.0
- */
-struct player
-{
-    /* Reference of connected player */
-    int reference;
-    
-    /* Color of player */
-    int color;
-    
-    /* True (1) if this user won */
-    int victorious;
-};
-
-
 /**
  * Send message to player, of message couldn't be sent, this function will
  * print error message to stderr
@@ -137,6 +138,30 @@ void sendPlayerCommand(int connected, char *command, char *param)
     }
 }
 
+/**
+ * Receive data from client
+ * 
+ * @param connected Identifier of player
+ * @return Data from client
+ */
+char* receivePlayerData(int connected)
+{
+    int bytes_received;
+    char recv_data;
+    char *data = (char *)malloc(sizeof(char) * 1024);
+    int i;
+    for (i = 0; (bytes_received = recv(connected, &recv_data, 1, 0)); i++)
+    {
+        if (recv_data == '\n')
+        {
+            break;
+        }
+        data[i] = recv_data;
+    }
+    printf("data = %s\n", data);
+    return data;
+}
+
 
 
 
@@ -151,8 +176,8 @@ int main(int argc, char *argv[])
 {
     int port = 10001;
     char *ip_address = "127.0.0.1";
-    int sock, connected_first, connected_second, bytes_received, true = 1;
-    char recv_data;
+    int sock, connected_first, connected_second, true = 1;
+    
 
     struct sockaddr_in server_addr, first_player, second_player;
     int first_player_size, second_player_size;
@@ -227,20 +252,24 @@ int main(int argc, char *argv[])
             
             printf("Game begins\n");
             int check_mate = 0, check_stalemate = 0;
+            game.player = white_player;
             while (!check_mate && !check_stalemate)
             {
                 // game loop
-            }
-            
-            
-            while ((bytes_received = recv(connected_first, &recv_data, 1, 0)))
-            {
-                printf("\nrecv= %c\n", recv_data);
-                if (recv_data == '\n')
+                if (game.player.reference == white_player.reference)
                 {
-                    break;
+                    sendPlayerCommand(white_player.reference, COMMAND_MESSAGE, "Your move:");
+                    char *move;
+                    move = receivePlayerData(white_player.reference);
+                }
+                else
+                {
+                    
                 }
             }
+            
+            
+            
         }
         else
         {
