@@ -9,6 +9,13 @@
 #include "chess_game.c"
 #include "player.c"
 
+/**
+ * Main chess server function. 
+ * 
+ * @param argc Count of arguments
+ * @param argv Arguments
+ * @return Any integer different from zero means error
+ */
 int main(int argc, char *argv[])
 {
     int port = 10001;
@@ -64,7 +71,8 @@ int main(int argc, char *argv[])
         
         number_of_game++;
         
-        sendPlayerMessage(connected_first, "success");
+        sendPlayerCommand(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
+        sendPlayerCommand(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
         
         printf("\n\n\n");
 
@@ -72,9 +80,19 @@ int main(int argc, char *argv[])
         {
             // set white and black player
             printf("Setting white and black player\n");
+            struct player white_player, black_player;
+            struct chess_game game;
+            
+            white_player.color = WHITE_PLAYER;
+            white_player.reference = connected_first;
+            white_player.victorious = 0;
+            black_player.color = BLACK_PLAYER;
+            black_player.reference = connected_second;
+            black_player.victorious = 0;
             
             // init chessboard
             printf("Initialization of chessboard\n");
+            initChessBoard(&game);
             
             printf("Game begins\n");
             int check_mate = 0, check_stalemate = 0;

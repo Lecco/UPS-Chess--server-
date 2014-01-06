@@ -15,4 +15,7 @@ struct chess_game
     int **BOARD_COLORS;
 };
 
+void initChessBoard(struct chess_game *game)
+{
 
+}
