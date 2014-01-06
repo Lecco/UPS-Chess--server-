@@ -1,12 +1,13 @@
-#include <stdio.h>   /* standard in and output*/
-#include <sys/socket.h> /* for socket() and socket functions*/
-#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#include <stdlib.h>    
-#include <string.h>     
-#include <unistd.h>     /* for close() */
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "constants.h"
-#include "Chess_game.c"
+#include "chess_game.c"
+#include "player.c"
 
 int main(int argc, char *argv[])
 {
@@ -64,10 +65,25 @@ int main(int argc, char *argv[])
         number_of_game++;
         
         sendPlayerMessage(connected_first, "success");
+        
+        printf("\n\n\n");
 
         if (fork() == 0)
         {
-            printf("\nGame begins, sending info to players..\n");
+            // set white and black player
+            printf("Setting white and black player\n");
+            
+            // init chessboard
+            printf("Initialization of chessboard\n");
+            
+            printf("Game begins\n");
+            int check_mate = 0, check_stalemate = 0;
+            while (!check_mate && !check_stalemate)
+            {
+                // game loop
+            }
+            
+            
             while ((bytes_received = recv(connected_first, &recv_data, 1, 0)))
             {
                 printf("\nrecv= %c\n", recv_data);
