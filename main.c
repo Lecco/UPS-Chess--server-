@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 #include "constants.h"
-#include "chess_game.c"
+#include "chess_gam.c"
 #include "player.c"
 
 int main(int argc, char *argv[])
