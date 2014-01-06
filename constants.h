@@ -14,4 +14,6 @@
 #define PIECE_BISHOP 3          /* Represents bishop (= strelec) */
 #define PIECE_QUEEN 4           /* Represents queen (= dama) */
 #define PIECE_KING 5            /* Represents king (= kral) */
+#define WHITE_PLAYER 1
+#define BLACK_PLAYER 0
 

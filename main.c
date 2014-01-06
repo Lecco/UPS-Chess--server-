@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
     char *ip_address = "127.0.0.1";
     int sock, connected_first, connected_second, bytes_received, true = 1;
     char recv_data;
-    char replyBuffer[32];
 
     struct sockaddr_in server_addr, first_player, second_player;
     int first_player_size, second_player_size;
@@ -48,20 +47,27 @@ int main(int argc, char *argv[])
     }
 
     printf("\nChess server waiting for client on port %d..", port);
+    
+    int number_of_game = 0;
 
     while (1)
     {
         first_player_size = sizeof (first_player);
         connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
-        printf("\nFirst player connected from %s on port %d)", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+        printf("\nFirst player connected from %s on port %d)\n", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
         connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
-        printf("\nSecond player connected from %s on port %d)", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+        printf("\nSecond player connected from %s on port %d)\n", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+        
+        number_of_game++;
+        
+        sendPlayerMessage(connected_first, "success");
 
         if (fork() == 0)
         {
+            printf("\nGame begins, sending info to players..\n");
             while ((bytes_received = recv(connected_first, &recv_data, 1, 0)))
             {
                 printf("\nrecv= %c\n", recv_data);
@@ -70,21 +76,12 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
-            
-            int success = 1;
-            sprintf(replyBuffer, "%d\n", success);
-            //printf("reply buffer = %s\n", replyBuffer);
-            if (send(connected_first, replyBuffer, strlen(replyBuffer), 0) == -1)
-            {
-                perror("send() failed");
-            }
-            success = 0;
-            
         }
         else
         {
             close(connected_first);
             close(connected_second);
         }
+        sleep(5000);
     }
 }
