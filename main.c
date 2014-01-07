@@ -193,17 +193,27 @@ int playMove(struct chess_game *game, char *move)
 {
     printf("Trying to play move %s\n", move);
     int movePlayable = isMovePlayable(game, move);
-    if (movePlayable == MOVE_PLAYABLE)
+    switch (movePlayable)
     {
-        printf("Move is playable\n");
-        // play this move
+        case MOVE_NOT_CHESSBOARD:
+            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.\n");
+            break;
+        case MOVE_NOT_OWNER:
+            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player, COMMAND_MESSAGE, "You tried to move other players piece.\n");
+            break;
+        case MOVE_OWN_PIECE:
+            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.\n");
+            break;
+        case MOVE_PLAYABLE:
+        default:
+            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_SUCCESS);
+            
+            sendPlayerCommand(game->player, COMMAND_MESSAGE, "Move successfully completed.\n");
+            break;
     }
-    else
-    {
-        printf("Move can not be played, reason = %d\n", movePlayable);
-        // print reason
-    }
-    sleep(1000);
 }
 
 /**
