@@ -196,22 +196,21 @@ int playMove(struct chess_game *game, char *move)
     switch (movePlayable)
     {
         case MOVE_NOT_CHESSBOARD:
-            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.\n");
             break;
         case MOVE_NOT_OWNER:
-            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player, COMMAND_MESSAGE, "You tried to move other players piece.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move other players piece.\n");
             break;
         case MOVE_OWN_PIECE:
-            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.\n");
             break;
         case MOVE_PLAYABLE:
         default:
-            sendPlayerCommand(game->player, COMMAND_STATUS, COMMAND_SUCCESS);
-            
-            sendPlayerCommand(game->player, COMMAND_MESSAGE, "Move successfully completed.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.\n");
             break;
     }
 }
@@ -247,17 +246,69 @@ int isMovePlayable(struct chess_game *game, char *move)
             return MOVE_NOT_CHESSBOARD;
         }
     }
-    printChessBoardColors(game);
+    // check if ending field isn't already used by players piece
     if (game->board_colors[move[1]][move[0]] == game->board_colors[move[3]][move[2]])
     {
         return MOVE_OWN_PIECE;
     }
-    printf("player = %d, piece = %d\n", game->player.color, game->board_colors[move[1]][move[0]]);
+    // check if player is moving with his own piece
     if (game->player.color != game->board_colors[move[1]][move[0]])
     {
         return MOVE_NOT_OWNER;
     }
+    // check if move can be performed by this piece
+    if (pieceMove(game->board_figures[move[1]][move[0]], move) != 1)
+    {
+        return MOVE_NOT_PLAYABLE;
+    }
     return MOVE_PLAYABLE;
+}
+
+
+int pieceMove(int piece, char *move)
+{
+    switch (piece)
+    {
+        case PIECE_BISHOP:
+            if (move[1] - move[0] != move[3] - abs(move[2]))
+            {
+                return 0;
+            }
+            // check if there isn't any other piece in the way
+            // TODO
+            break;
+        case PIECE_KING:
+            if (abs(move[0] - move[2]) > 1 || abs(move[1] - move[3]) > 1)
+            {
+                return 0;
+            }
+            break;
+        case PIECE_KNIGHT:
+            if (!(abs(move[3] - move[1]) == 2 && abs(move[0] - move[2]) == 1) || 
+                (abs(move[3] - move[1]) == 1 && abs(move[0] - move[2]) == 2))
+            {
+                return 0;
+            }
+            break;
+        case PIECE_PAWN:
+            // first move of this pawn
+            if (move[3] - move[1] == 2 && (move[1] != 1 || move[1] != CHESS_BOARD - 2))
+            {
+                return 0;
+            }
+            // TODO: capturing other players piece (diagonal)
+            
+            if (move[3] - move[1] != 1)
+            {
+                return 0;
+            }
+            break;
+        case PIECE_QUEEN:
+            break;
+        case PIECE_ROOK:
+            break;
+    }
+    return 1;
 }
 
 
