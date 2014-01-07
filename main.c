@@ -304,8 +304,19 @@ int pieceMove(int piece, char *move)
             }
             break;
         case PIECE_QUEEN:
+            if (move[1] - move[0] != move[3] - abs(move[2]) ||
+                !(abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
+                !(abs(move[3] - move[1]) > 0 && abs(move[2] - move[1]) == 0))
+            {
+                return 0;
+            }
             break;
         case PIECE_ROOK:
+            if (!(abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
+                !(abs(move[3] - move[1]) > 0 && abs(move[2] - move[1]) == 0))
+            {
+                return 0;
+            }
             break;
     }
     return 1;
