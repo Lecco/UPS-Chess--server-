@@ -66,15 +66,15 @@ void initChessBoard(struct chess_game *game)
         game->board_figures[i] = (int *)malloc(sizeof(int *) * CHESS_BOARD);
         for (j = 0; j < CHESS_BOARD; j++)
         {
-            game->board_colors[i][j] = DEFAULT_CHESSPIECE;
-            game->board_figures[i][j] = DEFAULT_CHESSPIECE;
+            game->board_colors[i][j] = DEFAULT_COLOR;
+            game->board_figures[i][j] = DEFAULT_COLOR;
             if (i < WHITE_PLAYER_INIT)
             {
-                game->board_colors[i][j] = WHITE_CHESSPIECE;
+                game->board_colors[i][j] = WHITE_COLOR;
             }
             else if (i > BLACK_PLAYER_INIT)
             {
-                game->board_colors[i][j] = BLACK_CHESSPIECE;
+                game->board_colors[i][j] = BLACK_COLOR;
             }
         }
     }
@@ -115,6 +115,24 @@ void printChessBoard(struct chess_game *game)
         for (j = 0; j < CHESS_BOARD; j++)
         {
             printf("%d ", game->board_figures[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+/**
+ * Prints colors of pieces on chess board
+ * 
+ * @param game Game consists of info about colors
+ */
+void printChessBoardColors(struct chess_game *game)
+{
+    int i, j;
+    for (i = CHESS_BOARD - 1; i >= 0; i--)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            printf("%d ", game->board_colors[i][j]);
         }
         printf("\n");
     }
@@ -162,9 +180,74 @@ char* receivePlayerData(int connected)
     return data;
 }
 
+/**
+ * According to returned integer code we can find out, if this move is possible
+ * to play (it is chess, so piece can not end up outside chessboard or user can't
+ * move to position, where he'll have check/checkmate).
+ * 
+ * @param game Game with info about pieces
+ * @param move Move we want to sort out
+ * @return Code (check documentation for more info)
+ */
 int playMove(struct chess_game *game, char *move)
 {
     printf("Trying to play move %s\n", move);
+    int movePlayable = isMovePlayable(game, move);
+    if (movePlayable == MOVE_PLAYABLE)
+    {
+        printf("Move is playable\n");
+        // play this move
+    }
+    else
+    {
+        printf("Move can not be played, reason = %d\n", movePlayable);
+        // print reason
+    }
+    sleep(1000);
+}
+
+/**
+ * Check if move is playable in current distribution of pieces
+ * 
+ * @param game Info about pieces
+ * @param move Move to check
+ * @return True if move can be played
+ */
+int isMovePlayable(struct chess_game *game, char *move)
+{
+    int i;
+    for (i = 0; i < MOVE_LENGTH; i++)
+    {
+        // correct move to indexes of array
+        if (move[i] >= ASCII_CAPITAL_A && move[i] <= ASCII_CAPITAL_H)
+        {
+            move[i] = move[i] - ASCII_CAPITAL_A;
+        }
+        if (move[i] >= ASCII_A && move[i] <= ASCII_H)
+        {
+            move[i] = move[i] - ASCII_A;
+        }
+        if (move[i] >= ASCII_0 && move[i] <= ASCII_9)
+        {
+            move[i] = move[i] - ASCII_0 - 1;
+        }
+        // check if move starts and ends on chess board
+        if (move[i] < 0 || move[i] >= CHESS_BOARD)
+        {
+            return MOVE_NOT_CHESSBOARD;
+        }
+    }
+    printChessBoardColors(game);
+    if (game->board_colors[move[1]][move[0]] == game->board_colors[move[3]][move[2]])
+    {
+        return MOVE_OWN_PIECE;
+    }
+    printf("player = %d, piece = %d\n", game->player.color, game->board_colors[move[1]][move[0]]);
+    if (game->player.color != game->board_colors[move[1]][move[0]])
+    {
+        return MOVE_NOT_OWNER;
+    }
+    return MOVE_PLAYABLE;
 }
 
 
@@ -244,10 +327,10 @@ int main(int argc, char *argv[])
             struct player white_player, black_player;
             struct chess_game game;
             
-            white_player.color = WHITE_PLAYER;
+            white_player.color = WHITE_COLOR;
             white_player.reference = connected_first;
             white_player.victorious = 0;
-            black_player.color = BLACK_PLAYER;
+            black_player.color = BLACK_COLOR;
             black_player.reference = connected_second;
             black_player.victorious = 0;
             
