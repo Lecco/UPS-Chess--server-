@@ -257,7 +257,7 @@ int isMovePlayable(struct chess_game *game, char *move)
         return MOVE_NOT_OWNER;
     }
     // check if move can be performed by this piece
-    if (pieceMove(game->board_figures[move[1]][move[0]], move) != 1)
+    if (pieceMove(game, move) != 1)
     {
         return MOVE_NOT_PLAYABLE;
     }
@@ -265,8 +265,9 @@ int isMovePlayable(struct chess_game *game, char *move)
 }
 
 
-int pieceMove(int piece, char *move)
+int pieceMove(struct chess_game *game, char *move)
 {
+    int piece = game->board_figures[move[1]][move[0]];
     switch (piece)
     {
         case PIECE_BISHOP:
@@ -284,8 +285,8 @@ int pieceMove(int piece, char *move)
             }
             break;
         case PIECE_KNIGHT:
-            if (!(abs(move[3] - move[1]) == 2 && abs(move[0] - move[2]) == 1) || 
-                (abs(move[3] - move[1]) == 1 && abs(move[0] - move[2]) == 2))
+            if (!((abs(move[3] - move[1]) == 2 && abs(move[0] - move[2]) == 1) || 
+                (abs(move[3] - move[1]) == 1 && abs(move[0] - move[2]) == 2)))
             {
                 return 0;
             }
@@ -320,6 +321,191 @@ int pieceMove(int piece, char *move)
             break;
     }
     return 1;
+}
+
+
+/**
+ * Testing function
+ * 
+ * @param piece Chess piece
+ * @param move Move we want to perform
+ * @return True if piece c an move this way
+ */
+int canPieceMove(int piece, char *move)
+{
+    switch (piece)
+    {
+        case PIECE_BISHOP:
+            if (move[1] - move[0] != move[3] - move[2] &&
+                move[1] + move[0] != move[3] + move[2])
+            {
+                return 0;
+            }
+            // check if there isn't any other piece in the way
+            // TODO
+            break;
+        case PIECE_KING:
+            if (abs(move[0] - move[2]) > 1 || abs(move[1] - move[3]) > 1)
+            {
+                return 0;
+            }
+            break;
+        case PIECE_KNIGHT:
+            if (!((abs(move[3] - move[1]) == 2 && abs(move[0] - move[2]) == 1) || 
+                (abs(move[3] - move[1]) == 1 && abs(move[0] - move[2]) == 2)))
+            {
+                return 0;
+            }
+            break;
+        case PIECE_PAWN:
+            // first move of this pawn
+            if (move[3] - move[1] == 2 && (move[1] != 1 || move[1] != CHESS_BOARD - 2))
+            {
+                return 0;
+            }
+            // TODO: capturing other players piece (diagonal)
+            
+            if (move[3] - move[1] != 1)
+            {
+                return 0;
+            }
+            break;
+        case PIECE_QUEEN:
+            if (!((move[1] - move[0] == move[3] - move[2] ||
+                 move[1] + move[0] == move[3] + move[2]) ||
+                (abs(move[2] - move[0]) > 0 && move[3] - move[1] == 0) ||
+                (abs(move[3] - move[1]) > 0 && move[2] - move[1] == 0)))
+            {
+                return 0;
+            }
+            break;
+        case PIECE_ROOK:
+            if (!((abs(move[2] - move[0]) > 0 && move[3] - move[1] == 0) ||
+                (abs(move[3] - move[1]) > 0 && move[2] - move[1] == 0)))
+            {
+                return 0;
+            }
+            break;
+    }
+    return 1;
+}
+
+void testPieceMove(int piece, char *move)
+{
+    printf("\n--- TEST ---\nFigurka: %d\nTah: %s\n", piece, move);
+    if (canPieceMove(piece, move))
+    {
+        printf("LZE\n");
+    }
+    else
+    {
+        printf("NELZE\n");
+    }
+}
+
+void testPieces()
+{
+    /*
+    printf("BISHOP\n");
+    testPieceMove(PIECE_BISHOP, "c2e4");
+    testPieceMove(PIECE_BISHOP, "c3b3");
+    testPieceMove(PIECE_BISHOP, "e4c2");
+    
+    printf("\n\nKING\n");
+    testPieceMove(PIECE_KING, "c2c3");
+    testPieceMove(PIECE_KING, "c2d3");
+    testPieceMove(PIECE_KING, "c2d1");
+    testPieceMove(PIECE_KING, "c2d4");
+    testPieceMove(PIECE_KING, "c2a4");
+    testPieceMove(PIECE_KING, "c2a2");
+     */ 
+    /*
+    printf("\n\nKNIGHT\n");
+    testPieceMove(PIECE_KNIGHT, "c3d5");
+    testPieceMove(PIECE_KNIGHT, "c3e4");
+    testPieceMove(PIECE_KNIGHT, "c3e2");
+    testPieceMove(PIECE_KNIGHT, "c3d1");
+    testPieceMove(PIECE_KNIGHT, "c3b1");
+    testPieceMove(PIECE_KNIGHT, "c3a2");
+    testPieceMove(PIECE_KNIGHT, "c3a4");
+    testPieceMove(PIECE_KNIGHT, "c3b5");
+     */
+    /*
+    printf("ne:\n");
+    testPieceMove(PIECE_KNIGHT, "c3a5");
+    testPieceMove(PIECE_KNIGHT, "c3c5");
+    testPieceMove(PIECE_KNIGHT, "c3e5");
+    testPieceMove(PIECE_KNIGHT, "c3b4");
+    testPieceMove(PIECE_KNIGHT, "c3c4");
+    testPieceMove(PIECE_KNIGHT, "c3d4");
+    testPieceMove(PIECE_KNIGHT, "c3a3");
+    testPieceMove(PIECE_KNIGHT, "c3b3");
+    testPieceMove(PIECE_KNIGHT, "c3d3");
+    testPieceMove(PIECE_KNIGHT, "c3e3");
+    testPieceMove(PIECE_KNIGHT, "c3b2");
+    testPieceMove(PIECE_KNIGHT, "c3c2");
+    testPieceMove(PIECE_KNIGHT, "c3d2");
+    testPieceMove(PIECE_KNIGHT, "c3a1");
+    testPieceMove(PIECE_KNIGHT, "c3c1");
+    testPieceMove(PIECE_KNIGHT, "c3e1");
+     */
+    /*
+     * Pawns test differently (we must know their color)
+    printf("\n\nPAWN\n");
+    testPieceMove(PIECE_PAWN, "b2b4");
+    testPieceMove(PIECE_PAWN, "b2b3");
+    testPieceMove(PIECE_PAWN, "d2d4");
+    testPieceMove(PIECE_PAWN, "d5d6");
+     * */
+    /*
+    printf("\n\nQUEEN\n");
+     */
+    /*
+    testPieceMove(PIECE_QUEEN, "2202");
+    testPieceMove(PIECE_QUEEN, "2204");
+    testPieceMove(PIECE_QUEEN, "2224");
+    testPieceMove(PIECE_QUEEN, "2244");
+    testPieceMove(PIECE_QUEEN, "2242");
+    testPieceMove(PIECE_QUEEN, "2240");
+    testPieceMove(PIECE_QUEEN, "2220");
+    testPieceMove(PIECE_QUEEN, "2200");
+     */
+    /*
+    testPieceMove(PIECE_QUEEN, "2201");
+    testPieceMove(PIECE_QUEEN, "2203");
+    testPieceMove(PIECE_QUEEN, "2215");
+    testPieceMove(PIECE_QUEEN, "2235");
+    testPieceMove(PIECE_QUEEN, "2243");
+    testPieceMove(PIECE_QUEEN, "2241");
+    testPieceMove(PIECE_QUEEN, "2230");
+    testPieceMove(PIECE_QUEEN, "2210");
+     */
+    
+    /*
+    printf("\n\nROOK\n");
+    /*
+    testPieceMove(PIECE_ROOK, "2202");
+    testPieceMove(PIECE_ROOK, "2224");
+    testPieceMove(PIECE_ROOK, "2242");
+    testPieceMove(PIECE_ROOK, "2220");
+     */
+    /*
+    testPieceMove(PIECE_ROOK, "2201");
+    testPieceMove(PIECE_ROOK, "2203");
+    testPieceMove(PIECE_ROOK, "2215");
+    testPieceMove(PIECE_ROOK, "2235");
+    testPieceMove(PIECE_ROOK, "2243");
+    testPieceMove(PIECE_ROOK, "2241");
+    testPieceMove(PIECE_ROOK, "2230");
+    testPieceMove(PIECE_ROOK, "2210");
+    testPieceMove(PIECE_ROOK, "2204");
+    testPieceMove(PIECE_ROOK, "2244");
+    testPieceMove(PIECE_ROOK, "2240");
+    testPieceMove(PIECE_ROOK, "2200");
+     */
+    
+    while(getchar()!='\n');
+    exit(0);
 }
 
 
