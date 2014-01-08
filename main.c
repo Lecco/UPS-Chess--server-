@@ -264,7 +264,13 @@ int isMovePlayable(struct chess_game *game, char *move)
     return MOVE_PLAYABLE;
 }
 
-
+/**
+ * Check if piece can move this way
+ * 
+ * @param game Chessboard
+ * @param move Move of chesspiece
+ * @return True if chesspiece that move is possible
+ */
 int pieceMove(struct chess_game *game, char *move)
 {
     int piece = game->board_figures[move[1]][move[0]];
@@ -299,7 +305,9 @@ int pieceMove(struct chess_game *game, char *move)
             }
             // TODO: capturing other players piece (diagonal)
             
-            if (move[3] - move[1] != 1)
+            if (move[3] - move[1] != 1 ||
+                (move[3] - move[1] == 1 && game->player.color == BLACK_COLOR) ||
+                (move[3] - move[1] == -1 && game->player.color ==  WHITE_COLOR))
             {
                 return 0;
             }
@@ -390,6 +398,12 @@ int canPieceMove(int piece, char *move)
     return 1;
 }
 
+/**
+ * Test if piece can move this way
+ * 
+ * @param piece
+ * @param move
+ */
 void testPieceMove(int piece, char *move)
 {
     printf("\n--- TEST ---\nFigurka: %d\nTah: %s\n", piece, move);
