@@ -47,6 +47,9 @@ struct chess_game
     
     /* Identifier of user, whose turn is now */
     struct player player;
+
+    /* Identifier of game */
+    int number;
 };
 
 /**
@@ -148,8 +151,8 @@ void printChessBoardColors(struct chess_game *game)
  */
 void sendPlayerCommand(int connected, char *command, char *param)
 {
-    char replyBuffer[32];
-    sprintf(replyBuffer, "%s\n", param);
+    char replyBuffer[1024];
+    sprintf(replyBuffer, "%s---%s\n", command, param);
     if (send(connected, replyBuffer, strlen(replyBuffer), 0) == -1)
     {
         perror("send() failed");
@@ -176,7 +179,6 @@ char* receivePlayerData(int connected)
         }
         data[i] = recv_data;
     }
-    printf("data = %s\n", data);
     return data;
 }
 
@@ -191,7 +193,7 @@ char* receivePlayerData(int connected)
  */
 int playMove(struct chess_game *game, char *move)
 {
-    printf("Trying to play move %s\n", move);
+    printf("GAME %d: Trying to play move %s\n", game->number, move);
     int movePlayable = isMovePlayable(game, move);
     switch (movePlayable)
     {
@@ -207,12 +209,17 @@ int playMove(struct chess_game *game, char *move)
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.\n");
             break;
+        case MOVE_NOT_PLAYABLE:
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.\n");
+            break;
         case MOVE_PLAYABLE:
         default:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.\n");
             break;
     }
+    return movePlayable == MOVE_PLAYABLE ? 1 : 0;
 }
 
 /**
@@ -298,16 +305,11 @@ int pieceMove(struct chess_game *game, char *move)
             }
             break;
         case PIECE_PAWN:
-            // first move of this pawn
-            if (move[3] - move[1] == 2 && (move[1] != 1 || move[1] != CHESS_BOARD - 2))
-            {
-                return 0;
-            }
             // TODO: capturing other players piece (diagonal)
             
-            if (move[3] - move[1] != 1 ||
-                (move[3] - move[1] == 1 && game->player.color == BLACK_COLOR) ||
-                (move[3] - move[1] == -1 && game->player.color ==  WHITE_COLOR))
+            if (!(abs(move[3] - move[1]) == 1 ||
+                (move[3] - move[1] == 2 && game->player.color == WHITE_COLOR) ||
+                (move[1] - move[3] == 2 && game->player.color == BLACK_COLOR)))
             {
                 return 0;
             }
@@ -535,7 +537,7 @@ void testPieces()
 int main(int argc, char *argv[])
 {
     int port = 10001;
-    char *ip_address = "127.0.0.1";
+    char *ip_address = "10.0.0.142";
     int sock, connected_first, connected_second, true = 1;
     
 
@@ -576,28 +578,28 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        number_of_game++;
+
         first_player_size = sizeof (first_player);
         connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
-        printf("\nFirst player connected from %s, port %d\n", inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+        printf("\nGAME %d: First player connected from %s, port %d\n", number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+
+        sendPlayerCommand(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
         connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
-        printf("\nSecond player connected from %s, port %d\n", inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+        printf("\nGAME %d: Second player connected from %s, port %d\n", number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
         
-        number_of_game++;
-        
-        sendPlayerCommand(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
         sendPlayerCommand(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
         
-        printf("\n\n\n");
-
         if (fork() == 0)
         {
             // set white and black player
-            printf("Setting white and black player\n");
+            printf("GAME %d: Setting white and black player\n", number_of_game);
             struct player white_player, black_player;
             struct chess_game game;
+            game.number = number_of_game;
             
             white_player.color = WHITE_COLOR;
             white_player.reference = connected_first;
@@ -607,21 +609,25 @@ int main(int argc, char *argv[])
             black_player.victorious = 0;
             
             // init chessboard
-            printf("Initialization of chessboard\n");
+            printf("GAME %d: Initialization of chessboard\n", number_of_game);
             initChessBoard(&game);
             
-            printf("Game begins\n");
+            printf("GAME %d: Game begins\n", number_of_game);
             int check_mate = 0, check_stalemate = 0;
             game.player = white_player;
             while (!check_mate && !check_stalemate)
             {
                 // game loop
-                printf("Turn of player %d\n", game.player.reference);
-                sendPlayerCommand(game.player.reference, COMMAND_MESSAGE, "Your move:");
-                char *move;
-                move = receivePlayerData(game.player.reference);
-                int moveStatus = playMove(&game, move);
-                printf("End of turn of player %d", game.player.reference);
+                printf("GAME %d: Turn of player %d\n", number_of_game, game.player.reference);
+                // sendPlayerCommand(game.player.reference, COMMAND_MESSAGE, "Your move:");
+                int moveStatus = 0;
+                char *move = (char *)malloc(sizeof(char) * 16);
+                while (moveStatus != 1)
+                {
+                    move = receivePlayerData(game.player.reference);
+                    moveStatus = playMove(&game, move);
+                }
+                printf("GAME %d: End of turn of player %d\n", number_of_game, game.player.reference);
                 if (game.player.reference == white_player.reference)
                 {
                     game.player = black_player;
