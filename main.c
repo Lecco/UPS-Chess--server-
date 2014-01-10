@@ -199,24 +199,27 @@ int playMove(struct chess_game *game, char *move)
     {
         case MOVE_NOT_CHESSBOARD:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.");
             break;
         case MOVE_NOT_OWNER:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move other players piece.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move other players piece.");
             break;
         case MOVE_OWN_PIECE:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.");
             break;
         case MOVE_NOT_PLAYABLE:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.");
             break;
         case MOVE_PLAYABLE:
-        default:
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.\n");
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.");
+            break;
+        default:
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Incorrect move.");
             break;
     }
     return movePlayable == MOVE_PLAYABLE ? 1 : 0;
@@ -537,7 +540,7 @@ void testPieces()
 int main(int argc, char *argv[])
 {
     int port = 10001;
-    char *ip_address = "10.0.0.142";
+    char *ip_address = "10.0.0.139";
     int sock, connected_first, connected_second, true = 1;
     
 
