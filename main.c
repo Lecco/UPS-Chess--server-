@@ -588,6 +588,7 @@ int main(int argc, char *argv[])
         printf("\nGAME %d: First player connected from %s, port %d\n", number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
 
         sendPlayerCommand(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
+        sendPlayerCommand(connected_first, COMMAND_COLOR, COMMAND_COLOR_WHITE);
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
@@ -595,6 +596,7 @@ int main(int argc, char *argv[])
         printf("\nGAME %d: Second player connected from %s, port %d\n", number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
         
         sendPlayerCommand(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
+        sendPlayerCommand(connected_second, COMMAND_COLOR, COMMAND_COLOR_BLACK);
         
         if (fork() == 0)
         {
