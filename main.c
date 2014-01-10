@@ -214,6 +214,13 @@ int playMove(struct chess_game *game, char *move)
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.");
             break;
         case MOVE_PLAYABLE:
+            game->board_figures[move[3]][move[2]] = game->board_figures[move[1]][move[0]];
+            game->board_colors[move[3]][move[2]] = game->board_colors[move[1]][move[0]];
+            game->board_figures[move[1]][move[0]] = DEFAULT_COLOR;
+            game->board_colors[move[1]][move[0]] = DEFAULT_COLOR;
+
+            printChessBoard(game);
+            
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.");
             break;
@@ -318,16 +325,17 @@ int pieceMove(struct chess_game *game, char *move)
             }
             break;
         case PIECE_QUEEN:
-            if (move[1] - move[0] != move[3] - abs(move[2]) ||
-                !(abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
-                !(abs(move[3] - move[1]) > 0 && abs(move[2] - move[1]) == 0))
+            if (!((move[1] - move[0] == move[3] - move[2] ||
+                 move[1] + move[0] == move[3] + move[2]) ||
+                (abs(move[2] - move[0]) > 0 && move[3] - move[1] == 0) ||
+                (abs(move[3] - move[1]) > 0 && move[2] - move[0] == 0)))
             {
                 return 0;
             }
             break;
         case PIECE_ROOK:
-            if (!(abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
-                !(abs(move[3] - move[1]) > 0 && abs(move[2] - move[1]) == 0))
+            if (!((abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
+                (abs(move[3] - move[1]) > 0 && abs(move[2] - move[0]) == 0)))
             {
                 return 0;
             }
@@ -387,14 +395,14 @@ int canPieceMove(int piece, char *move)
             if (!((move[1] - move[0] == move[3] - move[2] ||
                  move[1] + move[0] == move[3] + move[2]) ||
                 (abs(move[2] - move[0]) > 0 && move[3] - move[1] == 0) ||
-                (abs(move[3] - move[1]) > 0 && move[2] - move[1] == 0)))
+                (abs(move[3] - move[1]) > 0 && move[2] - move[0] == 0)))
             {
                 return 0;
             }
             break;
         case PIECE_ROOK:
             if (!((abs(move[2] - move[0]) > 0 && move[3] - move[1] == 0) ||
-                (abs(move[3] - move[1]) > 0 && move[2] - move[1] == 0)))
+                (abs(move[3] - move[1]) > 0 && move[2] - move[0] == 0)))
             {
                 return 0;
             }
