@@ -10,6 +10,10 @@
 #define DEFAULT_COLOR 0         /* This constant is used on fields where aren't pieces */
 #define WHITE_COLOR 2           /* Represents white color of chess piece */
 #define BLACK_COLOR 1           /* Represents black color of chess piece */
+#define STATUS_DEFAULT 0        /* Status of normal game */
+#define STATUS_CHECK 1          /* Game with check */
+#define STATUS_CHECKMATE 2      /* Game with checkmate */
+#define STATUS_STALEMATE 3      /* Game with stalemate */
 #define PIECE_PAWN 1            /* Represents pawn (= pesec) */
 #define PIECE_ROOK 2            /* Represents rook (= vez) */
 #define PIECE_KNIGHT 3          /* Represents knight (= jezdec) */

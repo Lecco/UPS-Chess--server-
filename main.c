@@ -50,6 +50,12 @@ struct chess_game
 
     /* Identifier of game */
     int number;
+
+    /* Current game status, check, checkmate, normal, stalemate */
+    int state;
+
+    /* COLOR of player checked player */
+    int check;
 };
 
 /**
@@ -195,6 +201,7 @@ int playMove(struct chess_game *game, char *move)
 {
     printf("GAME %d: Trying to play move %s\n", game->number, move);
     int movePlayable = isMovePlayable(game, move);
+    int prevPiece, prevColor, is_check;
     switch (movePlayable)
     {
         case MOVE_NOT_CHESSBOARD:
@@ -214,13 +221,34 @@ int playMove(struct chess_game *game, char *move)
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.");
             break;
         case MOVE_PLAYABLE:
+            prevPiece = game->board_figures[move[3]][move[2]];
+            prevColor = game->board_colors[move[3]][move[2]];
+
             game->board_figures[move[3]][move[2]] = game->board_figures[move[1]][move[0]];
             game->board_colors[move[3]][move[2]] = game->board_colors[move[1]][move[0]];
             game->board_figures[move[1]][move[0]] = DEFAULT_COLOR;
             game->board_colors[move[1]][move[0]] = DEFAULT_COLOR;
 
-            printChessBoard(game);
-            
+            is_check = isCheck(game);
+            if (is_check == game->player.color)
+            {
+                // return last move
+                game->board_figures[move[1]][move[0]] = game->board_figures[move[3]][move[2]];
+                game->board_colors[move[1]][move[0]] = game->board_colors[move[3]][move[2]];
+
+                game->board_figures[move[3]][move[2]] = prevPiece;
+                game->board_colors[move[3]][move[2]] = prevColor;
+
+                sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
+                sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "This move would end up as check for you.");
+                return 0;
+            }
+            else if (is_check == WHITE_COLOR || is_check == BLACK_COLOR)
+            {
+                game->state = STATUS_CHECK;
+                game->check = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
+            }
+
             sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
             sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.");
             break;
@@ -291,15 +319,25 @@ int isMovePlayable(struct chess_game *game, char *move)
 int pieceMove(struct chess_game *game, char *move)
 {
     int piece = game->board_figures[move[1]][move[0]];
+    if (game->board_colors[move[1]][move[0]] == game->board_colors[move[3]][move[2]])
+    {
+        return 0;
+    }
     switch (piece)
     {
+        case DEFAULT_COLOR:
+            return 0;
+            break;
         case PIECE_BISHOP:
             if (move[1] - move[0] != move[3] - abs(move[2]))
             {
                 return 0;
             }
             // check if there isn't any other piece in the way
-            // TODO
+            if (!isPathFree(game, move))
+            {
+                return 0;
+            }
             break;
         case PIECE_KING:
             if (abs(move[0] - move[2]) > 1 || abs(move[1] - move[3]) > 1)
@@ -316,10 +354,10 @@ int pieceMove(struct chess_game *game, char *move)
             break;
         case PIECE_PAWN:
             // TODO: capturing other players piece (diagonal)
-            
-            if (!(abs(move[3] - move[1]) == 1 ||
-                (move[3] - move[1] == 2 && game->player.color == WHITE_COLOR) ||
-                (move[1] - move[3] == 2 && game->player.color == BLACK_COLOR)))
+            int other_color = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
+            if (!((move[2] - move[0] == 0) && (((move[3] - move[1] == 2 || move[3] - move[1] == 1) && game->player.color == WHITE_COLOR) ||
+                        ((move[1] - move[3] == 2 || move[1] - move[3] == 1) && game->player.color == BLACK_COLOR))) ||
+                    game->board_colors[move[3]][move[2]] == other_color)
             {
                 return 0;
             }
@@ -332,6 +370,10 @@ int pieceMove(struct chess_game *game, char *move)
             {
                 return 0;
             }
+            if (!isPathFree(game, move))
+            {
+                return 0;
+            }
             break;
         case PIECE_ROOK:
             if (!((abs(move[2] - move[0]) > 0 && abs(move[3] - move[1]) == 0) ||
@@ -339,7 +381,230 @@ int pieceMove(struct chess_game *game, char *move)
             {
                 return 0;
             }
+            if (!isPathFree(game, move))
+            {
+                return 0;
+            }
             break;
+    }
+    return 1;
+}
+
+/**
+ * Check if there is any piece between starting and ending position
+ *
+ * @param game Game with info about positions and colors
+ * @param move Move we want to perform
+ * @return True if there isn't any piece in path
+ */
+int isPathFree(struct chess_game *game, char *move)
+{
+    int x1 = move[0];
+    int y1 = move[1];
+    int x2 = move[2];
+    int y2 = move[3];
+
+    int i, j;
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            if ((i == y1 && j == x1) ||
+                (i == y2 && j == x2) ||
+                game->board_colors[i][j] == DEFAULT_COLOR)
+            {
+                continue;
+            }
+            if (isBetweenPoints(j, i, x1, y1, x2, y2))
+            {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+/**
+ * Check whether point is between other two (if it lies on line between them
+ *
+ * @param x X coordinate of point
+ * @param y Y coordinate of point
+ * @param x1 Coordinate of start point
+ * @param y1 Coordinate of start point
+ * @param x2 Coordinate of ending point
+ * @param y2 Coordinate of ending point
+ */
+int isBetweenPoints(int x, int y, int x1, int y1, int x2, int y2)
+{
+    int lineX = y2 - y1;
+    int lineY = x1 - x2;
+    int c = -lineX * x1 - lineY * y1;
+    if (lineX * x + lineY * y + c == 0 &&
+        ((x > x1 && x < x2) || (x > x2 && x < x1) ||
+         (y > y1 && y < y2) || (y > y2 && y < y1)))
+    {
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Check if there is check and on which player
+ *
+ * @param game Chessboard with figures, position and their colors
+ * @return Color of checked player
+ */
+int isCheck(struct chess_game *game)
+{
+    // find kings
+    int i, j;
+    int king_x, king_y, king_x2, king_y2;
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            if (game->board_figures[i][j] == PIECE_KING && game->board_colors[i][j] == game->player.color)
+            {
+                king_x = j;
+                king_y = i;
+            }
+            if (game->board_figures[i][j] == PIECE_KING && game->board_colors[i][j] != game->player.color)
+            {
+                king_x2 = j;
+                king_y2 = i;
+            }
+        }
+    }
+    // find out if any pieces of other player can move to king
+    char *move = (char *)malloc(sizeof(char) * 16);
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            if (game->board_figures[i][j] == DEFAULT_COLOR || game->board_colors[i][j] == game->player.color)
+            {
+                continue;
+            }
+            move[0] = j;
+            move[1] = i;
+            move[2] = king_x;
+            move[3] = king_y;
+            if (pieceMove(game, move))
+            {
+                return game->player.color;
+            }
+        }
+    }
+    // if check for other player?
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            if (game->board_figures[i][j] != DEFAULT_COLOR && game->board_colors[i][j] != game->player.color)
+            {
+                continue;
+            }
+            move[0] = j;
+            move[1] = i;
+            move[2] = king_x2;
+            move[3] = king_y2;
+            if (pieceMove(game, move))
+            {
+                return (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
+            }
+        }
+    }
+    return 0;
+}
+
+/**
+ * Copy game progress from given chess game (so we can try moves on a copy
+ *
+ * @param game Chess game we want to copy
+ * @return Copy of chess game
+ */
+struct chess_game *copyChessGame(struct chess_game *game)
+{
+    struct chess_game *g;
+    int i, j;
+
+    g = (struct chess_game *) malloc(sizeof(struct chess_game) + sizeof(int *) * sizeof(int *) * sizeof(int *) * sizeof(int *) * CHESS_BOARD * CHESS_BOARD);
+    if (g == NULL)
+    {
+        return NULL;
+    }
+
+    g->number = game->number;
+    g->player = game->player;
+    g->board_figures = (int **) malloc(sizeof(int *) * sizeof(int *) * CHESS_BOARD);
+    g->board_colors = (int **) malloc(sizeof(int *) * sizeof(int *) * CHESS_BOARD);
+
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        g->board_figures[i] = (int *) malloc(sizeof(int *) * CHESS_BOARD);
+        g->board_colors[i] = (int *) malloc(sizeof(int *) * CHESS_BOARD);
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            g->board_figures[i][j] = game->board_figures[i][j];
+            g->board_colors[i][j] = game->board_colors[i][j];
+        }
+    }
+
+    return g;
+}
+
+int isCheckmate(struct chess_game *game)
+{
+    if (game->check == STATUS_DEFAULT)
+    {
+        return 0;
+    }
+    int i, j, k, l;
+    char *move;
+    struct chess_game *temp;
+    for (i = 0; i < CHESS_BOARD; i++)
+    {
+        for (j = 0; j < CHESS_BOARD; j++)
+        {
+            if (game->check == game->board_colors[i][j])
+            {
+                for (k = 0; k < CHESS_BOARD; k++)
+                {
+                    for (l = 0; l < CHESS_BOARD; l++)
+                    {
+                        temp = copyChessGame(game);
+                        if (temp->player.color == WHITE_COLOR)
+                        {
+                            temp->player.color = BLACK_COLOR;
+                        }
+                        else
+                        {
+                            temp->player.color = WHITE_COLOR;
+                        }
+                        move[0] = j;
+                        move[1] = i;
+                        move[2] = l;
+                        move[3] = k;
+                        printf("move = %d %d %d %d\n", move[0], move[1], move[2], move[3]);
+                        if (!pieceMove(temp, move))
+                        {
+                            continue;
+                        }
+                        temp->board_figures[move[3]][move[2]] = temp->board_figures[move[1]][move[0]];
+                        temp->board_colors[move[3]][move[2]] = temp->board_colors[move[1]][move[0]];
+                        temp->board_figures[move[1]][move[0]] = DEFAULT_COLOR;
+                        temp->board_colors[move[1]][move[0]] = DEFAULT_COLOR;
+                        printChessBoard(temp);
+                        printf("\n%d", isCheck(temp));
+                        printf("\n\n");
+                        if (isCheck(temp) == 0)
+                        {
+                            return 0;
+                        }
+                    }
+                }
+            }
+        }
     }
     return 1;
 }
@@ -355,7 +620,7 @@ int pieceMove(struct chess_game *game, char *move)
 int main(int argc, char *argv[])
 {
     int port = 10001;
-    char *ip_address = "10.0.0.139";
+    char *ip_address = "10.0.0.142";
     int sock, connected_first, connected_second, true = 1;
     
 
@@ -412,14 +677,18 @@ int main(int argc, char *argv[])
         
         sendPlayerCommand(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
         sendPlayerCommand(connected_second, COMMAND_COLOR, COMMAND_COLOR_BLACK);
+
+        int fork_id = fork();
         
-        if (fork() == 0)
+        if (fork_id == 0)
         {
             // set white and black player
             printf("GAME %d: Setting white and black player\n", number_of_game);
             struct player white_player, black_player;
             struct chess_game game;
             game.number = number_of_game;
+            game.state = STATUS_DEFAULT;
+            game.check = DEFAULT_COLOR;
             
             white_player.color = WHITE_COLOR;
             white_player.reference = connected_first;
@@ -447,6 +716,22 @@ int main(int argc, char *argv[])
                     move = receivePlayerData(game.player.reference);
                     move_status = playMove(&game, move);
                 }
+                if (game.check == WHITE_COLOR)
+                {
+                    printf("White player is checked\n");
+                    if (isCheckmate(&game))
+                    {
+                        check_mate = 1;
+                    }
+                }
+                if (game.check == BLACK_COLOR)
+                {
+                    printf("Black player is checked\n");
+                    if (isCheckmate(&game))
+                    {
+                        check_mate = 1;
+                    }
+                }
                 printf("GAME %d: End of turn of player %d\n", number_of_game, game.player.reference);
                 if (game.player.reference == white_player.reference)
                 {
@@ -457,6 +742,19 @@ int main(int argc, char *argv[])
                     game.player = white_player;
                 }
             }
+
+            printf("GAME %d: Ended, victorious is ", game.number);
+            if (game.check == WHITE_COLOR)
+            {
+                printf("black player.\n");
+            }
+            else if (game.check == BLACK_COLOR)
+            {
+                printf("white player.\n");
+            }
+            close(connected_first);
+            close(connected_second);
+            break;
         }
         else
         {
