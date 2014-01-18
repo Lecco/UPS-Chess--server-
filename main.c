@@ -319,6 +319,7 @@ int isMovePlayable(struct chess_game *game, char *move)
 int pieceMove(struct chess_game *game, char *move)
 {
     int piece = game->board_figures[move[1]][move[0]];
+    int other_color;
     if (game->board_colors[move[1]][move[0]] == game->board_colors[move[3]][move[2]])
     {
         return 0;
@@ -354,7 +355,7 @@ int pieceMove(struct chess_game *game, char *move)
             break;
         case PIECE_PAWN:
             // TODO: capturing other players piece (diagonal)
-            int other_color = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
+            other_color = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
             if (!((move[2] - move[0] == 0) && (((move[3] - move[1] == 2 || move[3] - move[1] == 1) && game->player.color == WHITE_COLOR) ||
                         ((move[1] - move[3] == 2 || move[1] - move[3] == 1) && game->player.color == BLACK_COLOR))) ||
                     game->board_colors[move[3]][move[2]] == other_color)
@@ -585,7 +586,6 @@ int isCheckmate(struct chess_game *game)
                         move[1] = i;
                         move[2] = l;
                         move[3] = k;
-                        printf("move = %d %d %d %d\n", move[0], move[1], move[2], move[3]);
                         if (!pieceMove(temp, move))
                         {
                             continue;
@@ -594,9 +594,6 @@ int isCheckmate(struct chess_game *game)
                         temp->board_colors[move[3]][move[2]] = temp->board_colors[move[1]][move[0]];
                         temp->board_figures[move[1]][move[0]] = DEFAULT_COLOR;
                         temp->board_colors[move[1]][move[0]] = DEFAULT_COLOR;
-                        printChessBoard(temp);
-                        printf("\n%d", isCheck(temp));
-                        printf("\n\n");
                         if (isCheck(temp) == 0)
                         {
                             return 0;
@@ -711,10 +708,20 @@ int main(int argc, char *argv[])
                 // sendPlayerCommand(game.player.reference, COMMAND_MESSAGE, "Your move:");
                 int move_status = 0;
                 char *move = (char *)malloc(sizeof(char) * 16);
+                char *receivedMove = (char *) malloc(sizeof(char) * 16);
                 while (move_status != 1)
                 {
                     move = receivePlayerData(game.player.reference);
+                    strcpy(receivedMove,  move);
                     move_status = playMove(&game, move);
+                }
+                if (game.player.reference == white_player.reference)
+                {
+                    sendPlayerCommand(black_player.reference, COMMAND_MOVE, receivedMove);
+                }
+                else
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_MOVE, receivedMove);
                 }
                 if (game.check == WHITE_COLOR)
                 {
@@ -733,6 +740,27 @@ int main(int argc, char *argv[])
                     }
                 }
                 printf("GAME %d: End of turn of player %d\n", number_of_game, game.player.reference);
+                if (check_mate)
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
+                    // send players info about victorious player
+                }
+                else if (check_stalemate)
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE);
+                }
+                else if (game.check != DEFAULT_COLOR)
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK);
+                }
+                else
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT);
+                }
                 if (game.player.reference == white_player.reference)
                 {
                     game.player = black_player;
