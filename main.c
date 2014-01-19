@@ -748,11 +748,11 @@ int main(int argc, char *argv[])
                     if (game.check == WHITE_COLOR)
                     {
                         sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
-                        sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_DEFAULT);
+                        sendPlayerCommand(black_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
                     }
                     else
                     {
-                        sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_DEFAULT);
+                        sendPlayerCommand(white_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
                         sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
                     }
                 }
