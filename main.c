@@ -745,6 +745,16 @@ int main(int argc, char *argv[])
                     sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
                     sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
                     // send players info about victorious player
+                    if (game.check == WHITE_COLOR)
+                    {
+                        sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
+                        sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_DEFAULT);
+                    }
+                    else
+                    {
+                        sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_DEFAULT);
+                        sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
+                    }
                 }
                 else if (check_stalemate)
                 {
