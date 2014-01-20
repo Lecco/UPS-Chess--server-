@@ -663,8 +663,9 @@ int isCheckmate(struct chess_game *game)
  */
 int main(int argc, char *argv[])
 {
-    int port = 10001;
-    char *ip_address = "10.0.0.142";
+    char ip_address[strlen(argv[1])];
+    strcpy(ip_address, argv[1]);
+    int port = atoi(argv[2]);
     int sock, connected_first, connected_second, true = 1;
     
 
