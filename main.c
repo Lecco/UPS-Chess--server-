@@ -28,6 +28,9 @@ struct player
     
     /* True (1) if this user won */
     int victorious;
+
+    /* Info about connection */
+    int connected;
 };
 
 /**
@@ -48,13 +51,19 @@ struct chess_game
     /* Identifier of user, whose turn is now */
     struct player player;
 
+    /* White player in this game */
+    struct player *white_player;
+
+    /* Black player in this game */
+    struct player *black_player;
+
     /* Identifier of game */
     int number;
 
     /* Current game status, check, checkmate, normal, stalemate */
     int state;
 
-    /* COLOR of player checked player */
+    /* COLOR of checked player */
     int check;
 };
 
@@ -154,15 +163,53 @@ void printChessBoardColors(struct chess_game *game)
  * @param connected Reference to connected player
  * @param command Command for player (for futher info read documentation)
  * @param param Param of command, differs by command
+ * @return True if sending was ok
  */
-void sendPlayerCommand(int connected, char *command, char *param)
+int sendPlayerCommand(int connected, char *command, char *param, struct chess_game *game)
+{
+    if ((game->white_player->reference == connected && game->white_player->connected == 0) ||
+        (game->black_player->reference == connected && game->black_player->connected == 0) ||
+        connected == -1)
+    {
+        return 0;
+    }
+    char replyBuffer[1024];
+    sprintf(replyBuffer, "%s---%s\n", command, param);
+    if (send(connected, replyBuffer, strlen(replyBuffer), 0) == -1)
+    {
+        perror("send() failed");
+        if (game->white_player->reference == connected)
+        {
+            game->white_player->connected = 0;
+            sendConnectionInfo(game->black_player->reference, COMMAND_WHITE_STATUS, COMMAND_DISCONNECTED);
+        }
+        else
+        {
+            game->black_player->connected = 0;
+            sendConnectionInfo(game->white_player->reference, COMMAND_BLACK_STATUS, COMMAND_DISCONNECTED);
+        }
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * Send info about connection
+ *
+ * @param connected Reference to player
+ * @param command status command
+ * @param Param of command
+ */
+int sendConnectionInfo(int connected, char *command, char *param)
 {
     char replyBuffer[1024];
     sprintf(replyBuffer, "%s---%s\n", command, param);
     if (send(connected, replyBuffer, strlen(replyBuffer), 0) == -1)
     {
         perror("send() failed");
+        return 0;
     }
+    return 1;
 }
 
 /**
@@ -205,20 +252,20 @@ int playMove(struct chess_game *game, char *move)
     switch (movePlayable)
     {
         case MOVE_NOT_CHESSBOARD:
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece would end outside chessboard, try again.", game);
             break;
         case MOVE_NOT_OWNER:
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move other players piece.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move other players piece.", game);
             break;
         case MOVE_OWN_PIECE:
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "You tried to move on field with yout piece on it, try again.", game);
             break;
         case MOVE_NOT_PLAYABLE:
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Piece can not perform this move.", game);
             break;
         case MOVE_PLAYABLE:
             prevPiece = game->board_figures[move[3]][move[2]];
@@ -239,8 +286,8 @@ int playMove(struct chess_game *game, char *move)
                 game->board_figures[move[3]][move[2]] = prevPiece;
                 game->board_colors[move[3]][move[2]] = prevColor;
 
-                sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-                sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "This move would end up as check for you.");
+                sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+                sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "This move would end up as check for you.", game);
                 return 0;
             }
             else if (is_check == WHITE_COLOR || is_check == BLACK_COLOR)
@@ -249,12 +296,12 @@ int playMove(struct chess_game *game, char *move)
                 game->check = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
             }
 
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_SUCCESS, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Move successfully completed.", game);
             break;
         default:
-            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL);
-            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Incorrect move.");
+            sendPlayerCommand(game->player.reference, COMMAND_STATUS, COMMAND_FAIL, game);
+            sendPlayerCommand(game->player.reference, COMMAND_MESSAGE, "Incorrect move.", game);
             break;
     }
     return movePlayable == MOVE_PLAYABLE ? 1 : 0;
@@ -664,16 +711,16 @@ int main(int argc, char *argv[])
         connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
         printf("\nGAME %d: First player connected from %s, port %d\n", number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
 
-        sendPlayerCommand(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
-        sendPlayerCommand(connected_first, COMMAND_COLOR, COMMAND_COLOR_WHITE);
+        sendConnectionInfo(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
+        sendConnectionInfo(connected_first, COMMAND_COLOR, COMMAND_COLOR_WHITE);
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
         connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
         printf("\nGAME %d: Second player connected from %s, port %d\n", number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
         
-        sendPlayerCommand(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
-        sendPlayerCommand(connected_second, COMMAND_COLOR, COMMAND_COLOR_BLACK);
+        sendConnectionInfo(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
+        sendConnectionInfo(connected_second, COMMAND_COLOR, COMMAND_COLOR_BLACK);
 
         int fork_id = fork();
         
@@ -690,10 +737,14 @@ int main(int argc, char *argv[])
             white_player.color = WHITE_COLOR;
             white_player.reference = connected_first;
             white_player.victorious = 0;
+            white_player.connected = 1;
             black_player.color = BLACK_COLOR;
             black_player.reference = connected_second;
             black_player.victorious = 0;
-            
+            black_player.connected = 1;
+            game.white_player = &white_player;
+            game.black_player = &black_player;
+
             // init chessboard
             printf("GAME %d: Initialization of chessboard\n", number_of_game);
             initChessBoard(&game);
@@ -701,7 +752,7 @@ int main(int argc, char *argv[])
             printf("GAME %d: Game begins\n", number_of_game);
             int check_mate = 0, check_stalemate = 0;
             game.player = white_player;
-            while (!check_mate && !check_stalemate)
+            while (!check_mate && !check_stalemate && game.white_player->connected == 1 && game.black_player->connected == 1)
             {
                 // game loop
                 printf("GAME %d: Turn of player %d\n", number_of_game, game.player.reference);
@@ -709,7 +760,7 @@ int main(int argc, char *argv[])
                 int move_status = 0;
                 char *move = (char *)malloc(sizeof(char) * 16);
                 char *receivedMove = (char *) malloc(sizeof(char) * 16);
-                while (move_status != 1)
+                while (move_status != 1 && game.white_player->connected == 1 && game.black_player->connected == 1)
                 {
                     move = receivePlayerData(game.player.reference);
                     strcpy(receivedMove,  move);
@@ -717,11 +768,11 @@ int main(int argc, char *argv[])
                 }
                 if (game.player.reference == white_player.reference)
                 {
-                    sendPlayerCommand(black_player.reference, COMMAND_MOVE, receivedMove);
+                    sendPlayerCommand(black_player.reference, COMMAND_MOVE, receivedMove, &game);
                 }
                 else
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_MOVE, receivedMove);
+                    sendPlayerCommand(white_player.reference, COMMAND_MOVE, receivedMove, &game);
                 }
                 if (game.check == WHITE_COLOR)
                 {
@@ -742,34 +793,53 @@ int main(int argc, char *argv[])
                 printf("GAME %d: End of turn of player %d\n", number_of_game, game.player.reference);
                 if (check_mate)
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
-                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE);
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE, &game);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECKMATE, &game);
                     // send players info about victorious player
                     if (game.check == WHITE_COLOR)
                     {
-                        sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
-                        sendPlayerCommand(black_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
+                        sendPlayerCommand(white_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE, &game);
+                        sendPlayerCommand(black_player.reference, COMMAND_WHITE_PLAYER, COMMAND_GAME_STATUS_CHECKMATE, &game);
                     }
                     else
                     {
-                        sendPlayerCommand(white_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
-                        sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE);
+                        sendPlayerCommand(white_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE, &game);
+                        sendPlayerCommand(black_player.reference, COMMAND_BLACK_PLAYER, COMMAND_GAME_STATUS_CHECKMATE, &game);
                     }
                 }
                 else if (check_stalemate)
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE);
-                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE);
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE, &game);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_STALEMATE, &game);
                 }
                 else if (game.check != DEFAULT_COLOR)
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK);
-                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK);
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK, &game);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_CHECK, &game);
                 }
                 else
                 {
-                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT);
-                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT);
+                    sendPlayerCommand(white_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT, &game);
+                    sendPlayerCommand(black_player.reference, COMMAND_GAME_STATUS, COMMAND_GAME_STATUS_DEFAULT, &game);
+                }
+                // send players statuses of their opponents
+                int whitePlayerConnected = sendPlayerCommand(white_player.reference, COMMAND_MESSAGE, "Checking if player is connected.", &game);
+                int blackPlayerConnected = sendPlayerCommand(black_player.reference, COMMAND_MESSAGE, "Checking if player is connected.", &game);
+                if (whitePlayerConnected)
+                {
+                    sendPlayerCommand(black_player.reference, COMMAND_WHITE_STATUS, COMMAND_CONNECTED, &game);
+                }
+                else
+                {
+                    sendPlayerCommand(black_player.reference, COMMAND_WHITE_STATUS, COMMAND_DISCONNECTED, &game);
+                }
+                if (blackPlayerConnected)
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_BLACK_STATUS, COMMAND_CONNECTED, &game);
+                }
+                else
+                {
+                    sendPlayerCommand(white_player.reference, COMMAND_BLACK_STATUS, COMMAND_DISCONNECTED, &game);
                 }
                 if (game.player.reference == white_player.reference)
                 {
@@ -781,14 +851,18 @@ int main(int argc, char *argv[])
                 }
             }
 
-            printf("GAME %d: Ended, victorious is ", game.number);
+            printf("GAME %d: Ended", game.number);
             if (game.check == WHITE_COLOR)
             {
-                printf("black player.\n");
+                printf(", victorious is black player.\n");
             }
             else if (game.check == BLACK_COLOR)
             {
-                printf("white player.\n");
+                printf(", victorious is white player.\n");
+            }
+            else
+            {
+                printf(", player disconnected.");
             }
             close(connected_first);
             close(connected_second);
