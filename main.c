@@ -608,7 +608,7 @@ int isCheckmate(struct chess_game *game)
         return 0;
     }
     int i, j, k, l;
-    char *move;
+    char *move = (char *) malloc(sizeof(char) * 16);
     struct chess_game *temp;
     for (i = 0; i < CHESS_BOARD; i++)
     {
