@@ -659,6 +659,11 @@ int isCheckmate(struct chess_game *game)
  */
 int main(int argc, char *argv[])
 {
+    if (argc != 3)
+    {
+        perror("Not enough parameters, run server as server <ip> <port>");
+        exit(1);
+    }
     char ip_address[strlen(argv[1])];
     strcpy(ip_address, argv[1]);
     int port = atoi(argv[2]);
@@ -670,12 +675,6 @@ int main(int argc, char *argv[])
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror("Couldn't create socket.");
-        exit(1);
-    }
-
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &true, sizeof (int)) == -1)
-    {
-        perror("Setsockopt");
         exit(2);
     }
 
