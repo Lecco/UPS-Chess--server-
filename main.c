@@ -11,9 +11,8 @@
 
 
 /**
- * Structure player consists of player attributes like color of his pieces, if
- * he is victorious player (that is set after game is finished) and integer 
- * reference on his connection.
+ * Structure player consists of player attributes like color of his pieces, 
+ * integer reference on his connection.
  * 
  * @author Oldřich Pulkrt <O.Pulkrt@gmail.com>
  * @version 1.0
@@ -26,9 +25,6 @@ struct player
     /* Color of player */
     int color;
     
-    /* True (1) if this user won */
-    int victorious;
-
     /* Info about connection */
     int connected;
 };
@@ -737,11 +733,9 @@ int main(int argc, char *argv[])
             
             white_player.color = WHITE_COLOR;
             white_player.reference = connected_first;
-            white_player.victorious = 0;
             white_player.connected = 1;
             black_player.color = BLACK_COLOR;
             black_player.reference = connected_second;
-            black_player.victorious = 0;
             black_player.connected = 1;
             game.white_player = &white_player;
             game.black_player = &black_player;
