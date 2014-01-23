@@ -373,7 +373,7 @@ int pieceMove(struct chess_game *game, char *move)
             return 0;
             break;
         case PIECE_BISHOP:
-            if (move[1] - move[0] != move[3] - abs(move[2]))
+            if (abs(move[3] - move[1]) != abs(move[2] - abs(move[0])))
             {
                 return 0;
             }
