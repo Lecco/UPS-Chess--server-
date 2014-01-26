@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include "constants.h"
 #include "chess_game.h"
@@ -36,6 +37,11 @@ int main(int argc, char *argv[])
     {
         perror("Couldn't create socket.");
         exit(2);
+    }
+
+    if (argv[1][0] >= (char)'A' && argv[1][0] <= (char)'z')
+    {
+        hostname_to_ip(ip_address);
     }
 
     server_addr.sin_family = AF_INET;

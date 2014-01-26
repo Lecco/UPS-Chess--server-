@@ -85,3 +85,32 @@ char* receivePlayerData(int connected)
     }
     return data;
 }
+
+int hostname_to_ip(char * ip)
+{
+    int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    struct sockaddr_in *h;
+    int rv;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if ((rv = getaddrinfo(ip, "http", &hints, &servinfo)) != 0)
+    {
+        perror("getaddrinfo");
+        return 1;
+    }
+
+    for (p = servinfo; p!= NULL; p = p->ai_next)
+    {
+        h = ((struct sockaddr_in *)p->ai_addr);
+        strcpy(ip, inet_ntoa(h->sin_addr));
+        break;
+    }
+
+    freeaddrinfo(servinfo);
+    return 0;
+}
+
