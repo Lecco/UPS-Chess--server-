@@ -43,6 +43,12 @@ int main(int argc, char *argv[])
     {
         hostname_to_ip(ip_address);
     }
+    
+    if (is_valid_ip(ip_address) == 0)
+    {
+        perror("Not valid IP address.\n");
+        exit(5);
+    }
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);

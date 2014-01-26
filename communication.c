@@ -114,3 +114,29 @@ int hostname_to_ip(char * ip)
     return 0;
 }
 
+int is_valid_ip(char *ip)
+{
+    // check if ip4
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    if (result == 1)
+    {
+        return 1;
+    }
+
+    struct addrinfo hints, *servinfo;
+    int rv;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    rv = getaddrinfo(ip, NULL, &hints, &servinfo);
+
+    if (servinfo->ai_family == AF_INET6)
+    {
+        return 1;
+    }
+    return 0;
+}
+
