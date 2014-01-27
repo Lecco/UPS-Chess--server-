@@ -5,6 +5,9 @@
  * Created on 4. leden 2014, 10:33
  */
 
+#ifndef KONSTANTY
+#define KONSTANTY
+
 #define CHESS_BOARD 8           /* Length of chess board */
 #define MOVE_LENGTH 4           /* Length of move (move looks like b1c3) */
 #define DEFAULT_COLOR 0         /* This constant is used on fields where aren't pieces */
@@ -55,3 +58,5 @@
 #define MOVE_OWN_PIECE 3
 #define MOVE_NOT_OWNER 4
 #define MOVE_NOT_PLAYABLE 5
+
+#endif

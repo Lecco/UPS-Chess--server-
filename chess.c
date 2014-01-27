@@ -8,6 +8,19 @@
  * Created on 25. leden 2014, 10:57
  */
 
+#ifndef CHESS_C
+#define CHESS_C
+
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <netdb.h>
+#include "constants.h"
+#include "chess_game.h"
+
 /**
  * Init chess board, fill it with info about pieces (their position and their
  * color).
@@ -110,7 +123,7 @@ void printChessBoardColors(struct chess_game *game)
  */
 int playMove(struct chess_game *game, char *move)
 {
-    printf("GAME %d: Trying to play move %s\n", game->number, move);
+    printf("GAME %d: Trying to play move %c%c%c%c\n", game->number, move[0], move[1], move[2], move[3]);
     int movePlayable = isMovePlayable(game, move);
     int prevPiece, prevColor, is_check;
     switch (movePlayable)
@@ -267,11 +280,25 @@ int pieceMove(struct chess_game *game, char *move)
         case PIECE_PAWN:
             // TODO: capturing other players piece (diagonal)
             other_color = (game->player.color == WHITE_COLOR ? BLACK_COLOR : WHITE_COLOR);
-            if (!((move[2] - move[0] == 0) && (((move[3] - move[1] == 2 || move[3] - move[1] == 1) && game->player.color == WHITE_COLOR) ||
-                        ((move[1] - move[3] == 2 || move[1] - move[3] == 1) && game->player.color == BLACK_COLOR))) ||
-                    game->board_colors[move[3]][move[2]] == other_color)
+            if (game->player.color == WHITE_COLOR)
             {
-                return 0;
+                if (!((move[3] - move[1] == 1 && move[2] - move[0] == 0 && game->board_colors[move[3]][move[2]] == DEFAULT_COLOR) ||
+                      (move[3] - move[1] == 2 && move[2] - move[0] == 0 && game->board_colors[move[3]][move[2]] == DEFAULT_COLOR) ||
+                      (move[3] - move[1] == 1 && move[2] - move[0] == 1 && game->board_colors[move[3]][move[2]] != DEFAULT_COLOR) ||
+                      (move[3] - move[1] == 1 && move[0] - move[2] == 1 && game->board_colors[move[3]][move[2]] != DEFAULT_COLOR)))
+                {
+                    return 0;
+                }
+            }
+            if (game->player.color == BLACK_COLOR)
+            {
+                if (!((move[1] - move[3] == 1 && move[2] - move[0] == 0 && game->board_colors[move[3]][move[2]] == DEFAULT_COLOR) ||
+                      (move[1] - move[3] == 2 && move[2] - move[0] == 0 && game->board_colors[move[3]][move[2]] == DEFAULT_COLOR) ||
+                      (move[1] - move[3] == 1 && move[2] - move[0] == 1 && game->board_colors[move[3]][move[2]] != DEFAULT_COLOR) ||
+                      (move[1] - move[3] == 1 && move[0] - move[2] == 1 && game->board_colors[move[3]][move[2]] != DEFAULT_COLOR)))
+                {
+                    return 0;
+                }
             }
             break;
         case PIECE_QUEEN:
@@ -516,3 +543,5 @@ int isCheckmate(struct chess_game *game)
     }
     return 1;
 }
+
+#endif

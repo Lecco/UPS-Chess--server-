@@ -61,16 +61,6 @@ struct chess_game
     /* COLOR of checked player */
     int check;
 };
-#ifdef	__cplusplus
-extern "C" {
-#endif
-
-
-
-
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* CHESS_GAME_H */
 

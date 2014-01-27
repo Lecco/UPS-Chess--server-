@@ -7,6 +7,20 @@
  * Created on 25. leden 2014, 10:51
  */
 
+#ifndef COMMUNICATION_C
+#define COMMUNICATION_C
+
+#include <stdio.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <netdb.h>
+#include "constants.h"
+#include "chess_game.h"
+
+
 /**
  * Send message to player, of message couldn't be sent, this function will
  * print error message to stderr
@@ -107,8 +121,7 @@ int hostname_to_ip(char * ip)
     {
         h = ((struct sockaddr_in *)p->ai_addr);
         strcpy(ip, inet_ntoa(h->sin_addr));
-        printf("%s\n", ip);
-        //break;
+        break;
     }
 
     freeaddrinfo(servinfo);
@@ -155,10 +168,12 @@ int compare(char a[], char b[])
         if(a[c] == '\0' || b[c] == '\0')
             break;
         c++;
-
     }
     if(a[c] == '\0' || b[c] == '\0')
         return 0;
     else
         return -1;
 }
+
+
+#endif
