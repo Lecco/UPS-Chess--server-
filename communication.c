@@ -107,7 +107,8 @@ int hostname_to_ip(char * ip)
     {
         h = ((struct sockaddr_in *)p->ai_addr);
         strcpy(ip, inet_ntoa(h->sin_addr));
-        break;
+        printf("%s\n", ip);
+        //break;
     }
 
     freeaddrinfo(servinfo);
@@ -124,6 +125,11 @@ int is_valid_ip(char *ip)
         return 1;
     }
 
+    return is_ipv6(ip);
+}
+
+int is_ipv6(char *ip)
+{
     struct addrinfo hints, *servinfo;
     int rv;
 
@@ -140,3 +146,19 @@ int is_valid_ip(char *ip)
     return 0;
 }
 
+int compare(char a[], char b[])
+{
+    int c = 0;
+
+    while(a[c] == b[c])
+    {
+        if(a[c] == '\0' || b[c] == '\0')
+            break;
+        c++;
+
+    }
+    if(a[c] == '\0' || b[c] == '\0')
+        return 0;
+    else
+        return -1;
+}

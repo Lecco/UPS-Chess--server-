@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
         exit(4);
     }
 
-    printf("\nChess server waiting for client on ip address %s ", inet_ntoa(server_addr.sin_addr));
     socklen_t len = sizeof(server_addr);
     if (getsockname(sock, (struct sockaddr *) &server_addr, &len))
     {
@@ -75,6 +74,7 @@ int main(int argc, char *argv[])
     }
     else
     {
+        printf("\nChess server waiting for client on ip address %s ", inet_ntoa(server_addr.sin_addr));
         printf("and port %d.\n", ntohs(server_addr.sin_port));
     }
     printf("\n");
@@ -82,22 +82,49 @@ int main(int argc, char *argv[])
 
     while (1)
     {
+        int conn1;
+        char conn1acc[1024];
+        char succ[1024];
+        strcpy(succ, "STATUS---SUCCESS");
+        conn1 = 0;
         number_of_game++;
 
         first_player_size = sizeof (first_player);
-        connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
-        printf("\nGAME %d: First player connected from %s, port %d\n", number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
-
+        while (conn1 != 1)
+        {
+            connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
+            strcpy(conn1acc, receivePlayerData(connected_first));
+            if (compare(conn1acc, succ) == 0)
+            {
+                conn1 = 1;
+            }
+            else
+            {
+                close(connected_first);
+            }
+        }
         sendConnectionInfo(connected_first, COMMAND_STATUS, COMMAND_SUCCESS);
         sendConnectionInfo(connected_first, COMMAND_COLOR, COMMAND_COLOR_WHITE);
+        printf("\nGAME %d: First player connected from %s, port %d\n", number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
         
         // wait for next player, so game can begin
         second_player_size = sizeof (second_player);
-        connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
-        printf("\nGAME %d: Second player connected from %s, port %d\n", number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
-        
+        conn1 = 0;
+        while (conn1 != 1)
+        {
+            connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
+            strcpy(conn1acc, receivePlayerData(connected_second));
+            if (compare(conn1acc, "STATUS---SUCCESS"))
+            {
+                conn1 = 1;
+            }
+        }
         sendConnectionInfo(connected_second, COMMAND_STATUS, COMMAND_SUCCESS);
         sendConnectionInfo(connected_second, COMMAND_COLOR, COMMAND_COLOR_BLACK);
+        printf("\nGAME %d: Second player connected from %s, port %d\n", number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+        
+        sendConnectionInfo(connected_first, COMMAND_BLACK_STATUS, COMMAND_CONNECTED);
+        sendConnectionInfo(connected_second, COMMAND_WHITE_STATUS, COMMAND_CONNECTED);
 
         int fork_id = fork();
         
@@ -138,8 +165,18 @@ int main(int argc, char *argv[])
                 while (move_status != 1 && game.white_player->connected == 1 && game.black_player->connected == 1)
                 {
                     move = receivePlayerData(game.player.reference);
-                    strcpy(receivedMove,  move);
-                    move_status = playMove(&game, move);
+                    if (((move[0] >= 'a' && move[0] <= 'h') || (move[0] >= 'A' && move[0] <= 'H')) &&
+                        (move[1] >= '1' && move[1] <= '8') &&
+                        ((move[2] >= 'a' && move[2] <= 'h') || (move[2] >= 'A' && move[2] <= 'H')) &&
+                        (move[3] >= '1' && move[3] <= '8'))
+                    {
+                        strcpy(receivedMove,  move);
+                        move_status = playMove(&game, move);
+                    }
+                    else
+                    {
+                        move_status = 0;
+                    }
                 }
                 if (game.player.reference == white_player.reference)
                 {
