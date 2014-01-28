@@ -100,6 +100,12 @@ char* receivePlayerData(int connected)
     return data;
 }
 
+/**
+ * Return ip address by DNS
+ * 
+ * @param ip hostname
+ * @return IP address
+ */
 int hostname_to_ip(char * ip)
 {
     int sockfd;
@@ -128,6 +134,12 @@ int hostname_to_ip(char * ip)
     return 0;
 }
 
+/**
+ * Check if ip address is valid (ipv4 or ipv6)
+ * 
+ * @param ip IP address
+ * @return True if ip is valid IP address
+ */
 int is_valid_ip(char *ip)
 {
     // check if ip4
@@ -141,6 +153,12 @@ int is_valid_ip(char *ip)
     return is_ipv6(ip);
 }
 
+/**
+ * Check if IP address is valid ipv6
+ * 
+ * @param ip IP address
+ * @return True if ip is valid ipv6 addres
+ */
 int is_ipv6(char *ip)
 {
     struct addrinfo hints, *servinfo;
@@ -159,6 +177,13 @@ int is_ipv6(char *ip)
     return 0;
 }
 
+/**
+ * Compare two strings
+ * 
+ * @param a First string
+ * @param b Second string
+ * @return True if string are same
+ */
 int compare(char a[], char b[])
 {
     int c = 0;
