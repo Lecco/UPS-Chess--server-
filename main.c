@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         perror("Not enough parameters, run server as server <ip> <port>\nFor example ./ups 127.0.0.1 10000\n\n");
         exit(1);
     }
-    char ip_address[strlen(argv[1])];
+    char ip_address[strlen(argv[1]) * 2];
     strcpy(ip_address, argv[1]);
     int port = atoi(argv[2]);
     if (port < 1024 || port > 65535)
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in first_player, second_player;
     int first_player_size, second_player_size;
     int ipv6 = 0;
-    if (is_ipv6(ip_address))
+    if (is_ipv6(ip_address, port))
     {
         ipv6 = 1;
         struct sockaddr_in6 server_addr;
@@ -158,6 +158,10 @@ int main(int argc, char *argv[])
         {
             connected_first = accept(sock, (struct sockaddr *) &first_player, &first_player_size);
             strcpy(conn1acc, receivePlayerData(connected_first));
+            FILE *log = fopen(SERVER_LOG, "a");
+            mytime = time(NULL);
+            fprintf(log, "\n%sGAME %d: Connection from %s, port %d\n", ctime(&mytime), number_of_game, inet_ntoa(first_player.sin_addr), ntohs(first_player.sin_port));
+            fclose(log);
             if (compare(conn1acc, succ) == 0)
             {
                 conn1 = 1;
@@ -182,6 +186,10 @@ int main(int argc, char *argv[])
         {
             connected_second = accept(sock, (struct sockaddr *) &second_player, &second_player_size);
             strcpy(conn1acc, receivePlayerData(connected_second));
+            log = fopen(SERVER_LOG, "a"); 
+            mytime = time(NULL);
+            fprintf(log, "\n%sGAME %d: Connection from %s, port %d\n", ctime(&mytime), number_of_game, inet_ntoa(second_player.sin_addr), ntohs(second_player.sin_port));
+            fclose(log);
             if (compare(conn1acc, succ) == 0)
             {
                 conn1 = 1;
@@ -257,6 +265,11 @@ int main(int argc, char *argv[])
                     }
                     else
                     {
+                        
+                        if (compare(move, succ) == 0)
+                        {
+                            sendPlayerCommand(game.player.reference, COMMAND_STATUS, COMMAND_SUCCESS, &game);
+                        }
                         move_status = 0;
                     }
                 }

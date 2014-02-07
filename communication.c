@@ -108,6 +108,45 @@ char* receivePlayerData(int connected)
  */
 int hostname_to_ip(char * ip)
 {
+
+/*
+struct sockaddr SA;
+    static char HOST[25];
+// pretend sa is full of good information about the host and port...
+
+	if (getnameinfo(&SA, sizeof(SA), HOST, sizeof(HOST), NULL, NULL, 0))
+	{
+		printf("ne");
+		return 0;
+	}
+printf("a");
+return 1;
+*/
+/*
+
+        struct hostent *he;
+	struct in_addr **addr_list;
+	int i;
+		
+	if ( (he = gethostbyname( ip ) ) == NULL) 
+	{
+		// get the host info
+		herror("gethostbyname");
+		return 1;
+	}
+
+	addr_list = (struct in_addr **) he->h_addr_list;
+	
+	for(i = 0; addr_list[i] != NULL; i++) 
+	{
+		//Return the first one;
+		strcpy(ip , inet_ntoa(*addr_list[i]) );
+		return 0;
+	}
+	
+	return 1;
+*/
+
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
     struct sockaddr_in *h;
@@ -117,13 +156,13 @@ int hostname_to_ip(char * ip)
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    if ((rv = getaddrinfo(ip, "http", &hints, &servinfo)) != 0)
+    if ((rv = getaddrinfo(ip, NULL, &hints, &servinfo)) != 0)
     {
         perror("getaddrinfo");
         return 1;
     }
 
-    for (p = servinfo; p!= NULL; p = p->ai_next)
+    for (p = servinfo; p != NULL; p = p->ai_next)
     {
         h = ((struct sockaddr_in *)p->ai_addr);
         strcpy(ip, inet_ntoa(h->sin_addr));
@@ -132,6 +171,7 @@ int hostname_to_ip(char * ip)
 
     freeaddrinfo(servinfo);
     return 0;
+
 }
 
 /**
@@ -159,18 +199,25 @@ int is_valid_ip(char *ip)
  * @param ip IP address
  * @return True if ip is valid ipv6 addres
  */
-int is_ipv6(char *ip)
+int is_ipv6(char *ip, int port)
 {
     struct addrinfo hints, *servinfo;
     int rv;
 
-    memset(&hints, 0, sizeof hints);
+    char portik[16];
+    snprintf(portik, sizeof(portik), "%ld", port);
+
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    rv = getaddrinfo(ip, NULL, &hints, &servinfo);
+    rv = getaddrinfo(ip, portik, &hints, &servinfo);
+    if (rv < 0)
+    {
+        return 0;
+    }
 
-    if (servinfo->ai_family == AF_INET6)
+    if (rv < 0 ||servinfo->ai_family == AF_INET6)
     {
         return 1;
     }
